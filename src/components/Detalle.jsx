@@ -24,7 +24,7 @@ const Detalle = () => {
                 <div className="card-title">{pokemon.nombre}</div>
                 <p className="card-text">Alto: {pokemon.alto} - Ancho: {pokemon.ancho}</p>
             </div>
-        </div>
+        </div> 
     ) : null
 }
 
