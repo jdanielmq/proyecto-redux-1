@@ -74,13 +74,13 @@ const Perfil = () => {
                         onChange={e => seleccionarArchivo(e)}
                         />
 
-                    <label className="btn btn-dark mt-2" 
+                    <label className={loading ? 'btn btn-dark mt-2 disabled':'btn btn-dark mt-2'} 
                            htmlFor="inputGroupFile01">
                                Actualizar Imagen
                     </label>
                 </div>
 
-
+                
 
                 {
                     loading &&
