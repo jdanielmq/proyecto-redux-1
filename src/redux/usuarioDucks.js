@@ -1,4 +1,4 @@
-import {auth, firebase} from '../firebase'
+import {auth, firebase, db, storage} from '../firebase'
 
 // state
 
@@ -42,21 +42,44 @@ export const accederAccion = () => async(dispatch) =>{
     try {
         const provider = new firebase.auth.GoogleAuthProvider();
         const res = await auth.signInWithPopup(provider);
+
         console.log(res)
+        
+        const usuarioAux = {
+            uid : res.user.uid,
+            email: res.user.email,
+            photoURL: res.user.photoURL,
+            displayName: res.user.displayName
+        } 
+
+        const usuarioDB = await db.collection('usuarios').doc(res.user.email).get()
+        if(usuarioDB.exists){
+            console.log(usuarioDB.data())
+            dispatch({
+                type: USER_EXITO,
+                payload: usuarioDB.data()
+            })
+
+            localStorage.setItem('usuario', JSON.stringify(usuarioDB.data()))
+
+        }else{
+            console.log('no existe')
+            await db.collection('usuarios').doc(res.user.email).set(usuarioAux)
+            dispatch({
+                type: USER_EXITO,
+                payload: usuarioAux
+            })
+
+            localStorage.setItem('usuario', JSON.stringify(usuarioAux))
+        }
 
         dispatch({
             type:USER_EXITO,
             payload: {
-                user: {
-                    uid: res.user.uid,
-                    email: res.user.email
-                }
+                user: usuarioAux
             }
         })
-        localStorage.setItem('usuario', JSON.stringify({
-            uid : res.user.uid,
-            email: res.user.email
-        }))
+        localStorage.setItem('usuario', JSON.stringify(usuarioAux))
         
     } catch (error) {
         console.log(error);
@@ -84,4 +107,77 @@ export const cerrarSesionAccion = () => (dispatch) => {
         type: CERRAR_SESION
     })
     localStorage.removeItem('usuario')
+}
+
+export const actualizarDisplayNameAccion = (nuevoNombre) => async(dispatch, getState) => {
+
+    dispatch({
+        type:LOADING
+    })
+
+    const {user} = getState().usuario
+
+    try {
+            await db.collection('usuarios').doc(user.email).update({
+                displayName: nuevoNombre
+            })
+
+            const usuario = {
+                ...user,
+                displayName: nuevoNombre
+            }
+
+            console.log(usuario)
+            console.log(nuevoNombre)
+
+            dispatch({
+                type:USER_EXITO,
+                payload: {
+                    user: usuario
+                }
+            })
+
+            localStorage.setItem('usuario', JSON.stringify(usuario))
+
+    } catch (error) {
+        console.log(error)
+    }
+
+}
+
+export const actualizarFotoAccion = (imagen) => async(dispatch, getState) => {
+
+    dispatch({
+        type:LOADING
+    })
+
+    const {user} = getState().usuario
+
+    try {
+        const refImagen = await storage.ref().child(user.email).child('foto perfil')
+        await refImagen.put(imagen)
+        const urlDescarga = await refImagen.getDownloadURL()
+    
+        await db.collection('usuarios').doc(user.email).update({
+            photoURL: urlDescarga
+        })
+
+        const usuarioEditado = {
+            ...user,
+            photoURL: urlDescarga
+        }
+        dispatch({
+            type:USER_EXITO,
+            payload: {
+                user: usuarioEditado
+            }
+        })
+
+        localStorage.setItem('usuario', JSON.stringify(usuarioEditado))
+
+        
+    } catch (error) {
+        console.log(error)
+    }
+
 }
